@@ -4,8 +4,20 @@
 		<link href="visualizer.css" rel="stylesheet" type="text/css">
 	</head>
 	<body>
-		<div id="wrapper" position=absolute>
-			<canvas id="c" class="visualizer"></canvas> 
+		<div id="myNav" class="overlay">
+			<!-- Button to close the overlay navigation -->
+			<a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+			<!-- Overlay content -->
+			<div id="menu" class="overlay-content">
+				<a href="#">About</a>
+				<a href="#">Services</a>
+				<a href="#">Clients</a>
+				<a href="#">Contact</a>
+			</div>
+
+		</div>
+		<div id="wrapper" position=absolute onclick="openNav()">
+			<canvas id="c" class="visualizer"></canvas>
 		</div>
 
 	</body>
@@ -20,6 +32,7 @@ var stream;
 var refreshRate = 10;
 var analyser = audioContext.createAnalyser();
 
+var menu = document.getElementById("menu");
 var canvas = document.getElementById("c");
 var cc = canvas.getContext("2d");
 
@@ -29,7 +42,7 @@ var prevTime;
 var curVis = 0;	
 var cancelVis;
 var currentVisualizerIndex = 0;
-var visualizations = [frequencyBars,polygon];//ADD YOUR FUNCTION NAME TO THIS LIST
+var visualizations = [frequencyBars,circle];//ADD YOUR FUNCTION NAME TO THIS LIST
 var HEIGHT;
 var WIDTH;
 
@@ -57,7 +70,7 @@ function updateVis(){
 	WIDTH  = canvas.width;
 	//currentVisualizerIndex = 0
 
-	visualizations[currentVisualizerIndex](deltaTime);
+	visualizations[currentVisualizerIndex]();
 }
 //ignore this, just a doodle
 function drawSin(rate){
@@ -76,19 +89,36 @@ function drawSin(rate){
 	cc.stroke();
 }
 
-//function drawFrequency(deltaTime)
+
 //this is one of many visualizers you can pick. The function is chosen, it sets up relavent data, declares the function to animate the visualization, and sets up a callback to call the function every frame with requestAnimationFrame.
 function frequencyBars(){
 	console.log("frequencyBars");
+	//clearing the current menu and adding options for this visualization
+
+	while(menu.lastChild){
+		menu.removeChild(menu.lastChild);
+	}
+	
+	var barColor = '#FFFFFF';
+	var RGBInput = document.createElement("input");
+	RGBInput.value = barColor;
+	menu.appendChild(RGBInput)
+	RGBInput.oninput = () =>{
+		if(RegExp('#([0-9]|[a-f]|[A-F]){6}').test(RGBInput.value)){
+			barColor = RGBInput.value
+		}
+	}
+	
+	
 	analyser.fftSize = 2048;
 	analyser.minDecibels = -90;
 	analyser.maxDecibels = -10;
 	analyser.smoothingTimeConstant = .1;
-	
+
 	var bufferLengthAlt = analyser.frequencyBinCount;//fftsize/2
 	console.log(bufferLengthAlt);
 	var dataArrayAlt = new Uint8Array(bufferLengthAlt);
-	
+
 	cc.clearRect(0, 0, WIDTH, HEIGHT);
 
 	var drawFrequencyBars = function() {
@@ -96,96 +126,115 @@ function frequencyBars(){
 
 		analyser.getByteFrequencyData(dataArrayAlt);
 
-		cc.fillStyle = 'rgb(0, 0, 0)';
+		cc.fillStyle = '#000000';
 		cc.fillRect(0, 0, WIDTH, HEIGHT);
 
 		var barWidth = (WIDTH / bufferLengthAlt) * 2.5;
 		var barHeight;
 		var x = 0;
-		
+
 		for(var i = 0; i < bufferLengthAlt; i++) {
-			barHeight = dataArrayAlt[i];
-			
-	//i want to try boosting the bass for no good reason, like a deejay
-			
-			bassCoeff = dataArrayAlt.length - i
-			cc.fillStyle = 'rgb(200,20,200)';
-			//cc.fillRect(x,HEIGHT-barHeight,barWidth,barHeight);
-			cc.fillRect(x, HEIGHT/2 - barHeight, barWidth, barHeight * 2);
-			x += barWidth + 1;
-		}
-	};
+				  barHeight = dataArrayAlt[i];
 
-	drawFrequencyBars();
-}		
+				  //i want to try boosting the bass for no good reason, like a deejay
+				
+				  bassCoeff = dataArrayAlt.length - i
+				  cc.fillStyle = barColor;//'rgb(200,20,200)';
+				  //cc.fillRect(x,HEIGHT-barHeight,barWidth,barHeight);
+				  cc.fillRect(x, HEIGHT/2 - barHeight, barWidth, barHeight * 2);
+				  x += barWidth + 1;
+				  }
+				  };
 
-function polygon(data){
-	console.log("polygon");
-	analyser.fftSize = 2048;
-	analyser.smoothingTimeConstant = .5;
+				  drawFrequencyBars();
+				  }		
 
-	var bufferLengthAlt = analyser.frequencyBinCount;
-	var dataArrayAlt = new Uint8Array(bufferLengthAlt);
-	cc.clearRect(0,0,WIDTH,HEIGHT)
-	var drawPolygon = function(){
-		cancelVis = requestAnimationFrame(drawPolygon);
-		analyser.getByteFrequencyData(dataArrayAlt);
-		cc.fillStyle = 'rgb(0,0,0)';
-		cc.fillRect(0,0,WIDTH,HEIGHT);
-		
-		cc.strokeStyle = 'rgb(200,20,200)';
-		cc.strokeWidth = 5;
-		cc.beginPath();
-		cc.moveTo(WIDTH/2,HEIGHT/2);
-	
-		let angleIncrement = 2.0 * Math.PI/bufferLengthAlt
-		let minRad = 5;
-		for(i = 0; i < bufferLengthAlt; i++){			
-			deltaRad = dataArrayAlt[i]
-			rad = minRad + deltaRad
+				  function circle(){
+				  console.log("circle");
+				  analyser.fftSize = 2048;
+				  analyser.smoothingTimeConstant = .5;
 
-			x = WIDTH /2 + rad * Math.cos(angleIncrement * i)
-			y = HEIGHT/2 + rad * Math.sin(angleIncrement * i)
+				  //leaving code for fields in here until i've got a better idea what works
 
-			cc.lineTo(x, y)
-		}
-		cc.stroke();
-	};
-	drawPolygon();
+var bufferLengthAlt = analyser.frequencyBinCount;
+var dataArrayAlt = new Uint8Array(bufferLengthAlt);
+cc.clearRect(0,0,WIDTH,HEIGHT)
+var drawCircle = function(){
 
+cancelVis = requestAnimationFrame(drawCircle);
+
+analyser.getByteFrequencyData(dataArrayAlt);
+cc.fillStyle = 'rgb(0,0,0)';
+cc.fillRect(0,0,WIDTH,HEIGHT);
+
+cc.strokeStyle = 'rgb(200,20,200)';
+cc.lineWidth = 2;
+cc.beginPath();
+cc.moveTo(WIDTH/2,HEIGHT/2);
+
+let angleIncrement = 2.0 * Math.PI/(bufferLengthAlt)
+let minRad = 5;
+for(i = 0; i < bufferLengthAlt; i++){			
+deltaRad = dataArrayAlt[i]
+rad = minRad + deltaRad
+
+x = WIDTH /2 + rad * Math.cos(angleIncrement * i)
+y = HEIGHT/2 + rad * Math.sin(angleIncrement * i)
+
+cc.lineTo(x, y)
+}
+cc.stroke();
+};
+drawCircle();
 }
 
 
 
 window.onkeyup = (e) => {
-	let key = e.keyCode
-	if(key == 37){
-		currentVisualizerIndex--;
-		if(currentVisualizerIndex < 0){
-			currentVisualizerIndex = visualizations.length - 1
-		}
-		console.log("current vis index updated to: " + currentVisualizerIndex);
-		window.cancelAnimationFrame(cancelVis);
-		updateVis();
-	}
-	else if(key == 39){	
-		currentVisualizerIndex++;
-		if(currentVisualizerIndex > visualizations.length - 1){
-			currentVisualizerIndex = 0
-		}
-		console.log("current vis index updated to: " + currentVisualizerIndex);
-		window.cancelAnimationFrame(cancelVis);
-		updateVis();
-	}
+let key = e.keyCode
+if(key == 32){//space bar
+console.log("toggle menu");//TODO: make space also close the menu
+openNav();
+}
+else if(key == 37){
+currentVisualizerIndex--;
+if(currentVisualizerIndex < 0){
+currentVisualizerIndex = visualizations.length - 1
+}
+console.log("current vis index updated to: " + currentVisualizerIndex);
+window.cancelAnimationFrame(cancelVis);
+updateVis();
+closeNav();
+}
+else if(key == 39){	
+currentVisualizerIndex++;
+if(currentVisualizerIndex > visualizations.length - 1){
+currentVisualizerIndex = 0
+}
+console.log("current vis index updated to: " + currentVisualizerIndex);
+window.cancelAnimationFrame(cancelVis);
+updateVis();
+closeNav();
+}
 }
 
 window.onresize = () => {
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
-	HEIGHT = canvas.height
-	WIDTH = canvas.width
-	document.body.style.overflow = 'hidden';
-}	
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+HEIGHT = canvas.height
+WIDTH = canvas.width
+document.body.style.overflow = 'hidden';
+}
+
+/* Open when someone clicks on the span element */
+function openNav() {
+document.getElementById("myNav").style.width = "100%";
+}
+
+/* Close when someone clicks on the "x" symbol inside the overlay */
+function closeNav() {
+document.getElementById("myNav").style.width = "0%";
+}
 
 
 window.onresize()
